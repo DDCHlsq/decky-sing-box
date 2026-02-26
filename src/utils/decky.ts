@@ -31,6 +31,40 @@ export function showToast(message: string, type: 'success' | 'error' | 'info' = 
 }
 
 /**
+ * Safe localStorage operations with error handling
+ */
+export const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      logger.warn('Failed to read from localStorage:', e);
+      return null;
+    }
+  },
+
+  setItem: (key: string, value: string): boolean => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      logger.warn('Failed to write to localStorage:', e);
+      return false;
+    }
+  },
+
+  removeItem: (key: string): boolean => {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      logger.warn('Failed to remove from localStorage:', e);
+      return false;
+    }
+  },
+};
+
+/**
  * Logger utility
  */
 export const logger = {

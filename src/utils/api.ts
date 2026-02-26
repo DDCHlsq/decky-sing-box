@@ -4,22 +4,61 @@
 
 const BACKEND_URL = 'http://localhost:5555';
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
+/**
+ * Custom error class with HTTP status information
+ */
+export class ApiError extends Error {
+  status: number;
+  data?: any;
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || data.message || 'Request failed');
+  constructor(message: string, status: number, data?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
   }
+}
 
-  return data;
+async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  try {
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+      // Add timeout handling
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMessage = data.detail || data.message || 'Request failed';
+      throw new ApiError(errorMessage, response.status, data);
+    }
+
+    return data;
+  } catch (error) {
+    // Re-throw ApiError as is
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Handle fetch errors (network issues, timeout, etc.)
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new ApiError('Request timed out', 408);
+      }
+      if (error.message.includes('Failed to fetch')) {
+        throw new ApiError('Cannot connect to backend service', 503);
+      }
+    }
+    // Wrap unknown errors
+    throw new ApiError(
+      error instanceof Error ? error.message : 'Unknown error',
+      500
+    );
+  }
 }
 
 export const api = {

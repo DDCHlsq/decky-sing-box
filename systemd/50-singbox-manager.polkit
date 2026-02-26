@@ -1,5 +1,19 @@
-[Relevance]
-Action=org.freedesktop.systemd1.Manager.Start;org.freedesktop.systemd1.Manager.Stop;org.freedesktop.systemd1.Manager.Restart
-ResultContext=any
-[Rules]
-any=(uid==deck) ? allow
+// Polkit rules for Sing-Box Manager
+// Only allow deck user to control sing-box and singbox-manager services
+
+polkit.addRule(function(action, subject) {
+    // Check if the action is a systemd service control action
+    if (action.id.match(/^org\.freedesktop\.systemd1\.Manager\.(Start|Stop|Restart|Reload)$/)) {
+        // Get the unit name from the action
+        var unit = action.lookup("unit");
+
+        // Only allow control of sing-box and singbox-manager services
+        if (unit === "sing-box.service" || unit === "singbox-manager.service") {
+            // Allow only for deck user
+            if (subject.user == "deck") {
+                polkit.log("Allowing deck user to control: " + unit);
+                return polkit.Result.YES;
+            }
+        }
+    }
+});
