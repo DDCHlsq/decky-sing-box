@@ -5,6 +5,8 @@ A comprehensive Decky Loader plugin for managing the sing-box network proxy serv
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+> [English](README.md) | [中文](README_zh-CN.md)
+
 ## Features
 
 - **Service Control**: Start, stop, and restart the sing-box service
