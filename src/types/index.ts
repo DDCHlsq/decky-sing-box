@@ -1,6 +1,7 @@
 /**
  * Sing-Box Configuration Types
  * Based on: https://sing-box.sagernet.org/configuration/
+ * Compatible with sing-box 1.12.x
  */
 
 // ============================================================================
@@ -12,6 +13,18 @@ export interface LogConfig {
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'panic';
   output?: string;
   timestamp?: boolean;
+}
+
+// ============================================================================
+// NTP Configuration
+// ============================================================================
+
+export interface NTPConfig {
+  enabled?: boolean;
+  server: string;
+  server_port?: number;
+  interval?: string;
+  detour?: string;
 }
 
 // ============================================================================
@@ -78,12 +91,17 @@ export type InboundType =
   | 'http'
   | 'shadowsocks'
   | 'vmess'
+  | 'vless'
   | 'trojan'
   | 'naive'
   | 'hysteria'
   | 'hysteria2'
   | 'tuic'
-  | 'tun';
+  | 'tun'
+  | 'redirect'
+  | 'tproxy'
+  | 'shadowtls'
+  | 'anytls';
 
 export interface InboundBase {
   type: InboundType;
@@ -100,8 +118,260 @@ export interface InboundBase {
   domain_strategy?: 'default' | 'prefer_ipv4' | 'prefer_ipv6' | 'ipv4_only' | 'ipv6_only';
 }
 
-// Specific inbound types can be extended as needed
-export type Inbound = InboundBase & Record<string, unknown>;
+// Direct Inbound
+export interface DirectInbound extends InboundBase {
+  type: 'direct';
+  override_address?: string;
+  override_port?: number;
+  proxy_protocol?: boolean | 1 | 2;
+}
+
+// Mixed Inbound
+export interface MixedInbound extends InboundBase {
+  type: 'mixed';
+}
+
+// SOCKS Inbound
+export interface SocksInbound extends InboundBase {
+  type: 'socks';
+  users?: Array<{
+    username: string;
+    password: string;
+  }>;
+  header?: boolean;
+}
+
+// HTTP Inbound
+export interface HTTPInbound extends InboundBase {
+  type: 'http';
+  users?: Array<{
+    username: string;
+    password: string;
+  }>;
+  tls?: TLSConfig;
+  header?: boolean;
+  realm?: string;
+}
+
+// Shadowsocks Inbound
+export interface ShadowsocksInbound extends InboundBase {
+  type: 'shadowsocks';
+  method: string;
+  password: string;
+  network?: 'tcp' | 'udp';
+  users?: Array<{
+    name: string;
+    password: string;
+  }>;
+  multiplex?: MultiplexConfig;
+}
+
+// VMess Inbound
+export interface VMessInbound extends InboundBase {
+  type: 'vmess';
+  users: Array<{
+    name: string;
+    uuid: string;
+    alterId: number;
+  }>;
+  tls?: TLSConfig;
+  multiplex?: MultiplexConfig;
+  transport?: TransportConfig;
+}
+
+// VLESS Inbound
+export interface VLESSInbound extends InboundBase {
+  type: 'vless';
+  users: Array<{
+    name: string;
+    uuid: string;
+    flow?: string;
+  }>;
+  tls?: TLSConfig;
+  multiplex?: MultiplexConfig;
+  transport?: TransportConfig;
+}
+
+// Trojan Inbound
+export interface TrojanInbound extends InboundBase {
+  type: 'trojan';
+  users: Array<{
+    name: string;
+    password: string;
+  }>;
+  tls?: TLSConfig;
+  multiplex?: MultiplexConfig;
+  transport?: TransportConfig;
+  fallback?: {
+    server: string;
+    server_port: number;
+  };
+}
+
+// Naive Inbound
+export interface NaiveInbound extends InboundBase {
+  type: 'naive';
+  users: Array<{
+    username: string;
+    password: string;
+  }>;
+  tls: TLSConfig;
+}
+
+// Hysteria Inbound
+export interface HysteriaInbound extends InboundBase {
+  type: 'hysteria';
+  up: string | number;
+  down: string | number;
+  obfs?: string;
+  users?: Array<{
+    name: string;
+    auth: string;
+    auth_str?: string;
+  }>;
+  recv_window_conn?: number;
+  recv_window_client?: number;
+  max_conn_client?: number;
+  disable_mtu_discovery?: boolean;
+  tls: TLSConfig;
+}
+
+// Hysteria2 Inbound
+export interface Hysteria2Inbound extends InboundBase {
+  type: 'hysteria2';
+  up_mbps?: number;
+  down_mbps?: number;
+  obfs?: {
+    type?: 'salamander';
+    password: string;
+  };
+  users?: Array<{
+    name: string;
+    password: string;
+  }>;
+  ignore_client_bandwidth?: boolean;
+  tls: TLSConfig;
+  masquerade?: string;
+  brute_force?: boolean;
+}
+
+// TUIC Inbound
+export interface TUICInbound extends InboundBase {
+  type: 'tuic';
+  users: Array<{
+    name: string;
+    uuid: string;
+    password: string;
+  }>;
+  congestion_control?: 'cubic' | 'new_reno' | 'bbr';
+  auth_timeout?: string;
+  zero_rtt_handshake?: boolean;
+  heartbeat?: string;
+  tls: TLSConfig;
+}
+
+// TUN Inbound
+export interface TUNInbound extends InboundBase {
+  type: 'tun';
+  interface_name?: string;
+  inet4_address?: string | string[];
+  inet6_address?: string | string[];
+  mtu?: number;
+  auto_route?: boolean;
+  auto_redirect?: boolean;
+  auto_redirect_input_mark?: number;
+  auto_redirect_output_mark?: number;
+  strict_route?: boolean;
+  iproute2_table_index?: number;
+  iproute2_rule_index?: number;
+  auto_detect_interface?: boolean;
+  endpoint_independent_nat?: boolean;
+  udp_timeout?: number;
+  stack?: 'system' | 'gvisor' | 'mixed';
+  platform?: {
+    http_proxy?: {
+      enabled?: boolean;
+      server?: string;
+      server_port?: number;
+    };
+  };
+}
+
+// Redirect Inbound
+export interface RedirectInbound extends InboundBase {
+  type: 'redirect';
+  tcp_fast_open?: boolean;
+  proxy_protocol?: boolean | 1 | 2;
+}
+
+// TProxy Inbound
+export interface TProxyInbound extends InboundBase {
+  type: 'tproxy';
+  network?: 'tcp' | 'udp';
+}
+
+// ShadowTLS Inbound
+export interface ShadowTLSInbound extends InboundBase {
+  type: 'shadowtls';
+  version: 1 | 2 | 3;
+  password?: string;
+  users?: Array<{
+    name: string;
+    password: string;
+  }>;
+  handshake?: {
+    server: string;
+    server_port: number;
+  };
+  handshake_for_server_name?: Record<string, {
+    server: string;
+    server_port: number;
+  }>;
+  strict_mode?: boolean;
+}
+
+// AnyTLS Inbound
+export interface AnyTLSInbound extends InboundBase {
+  type: 'anytls';
+  users: Array<{
+    name: string;
+    password: string;
+  }>;
+  handshake?: {
+    server: string;
+    server_port: number;
+  };
+  handshake_for_server_name?: Record<string, {
+    server: string;
+    server_port: number;
+  }>;
+  loss?: number;
+  lazy?: boolean;
+  corrupt?: number;
+  delay?: number;
+  jitter?: number;
+}
+
+// Generic inbound type for unknown/extended types
+export type Inbound =
+  | DirectInbound
+  | MixedInbound
+  | SocksInbound
+  | HTTPInbound
+  | ShadowsocksInbound
+  | VMessInbound
+  | VLESSInbound
+  | TrojanInbound
+  | NaiveInbound
+  | HysteriaInbound
+  | Hysteria2Inbound
+  | TUICInbound
+  | TUNInbound
+  | RedirectInbound
+  | TProxyInbound
+  | ShadowTLSInbound
+  | AnyTLSInbound
+  | (InboundBase & Record<string, unknown>);
 
 // ============================================================================
 // Outbound Configuration
@@ -122,7 +392,11 @@ export type OutboundType =
   | 'wireguard'
   | 'dns'
   | 'selector'
-  | 'urltest';
+  | 'urltest'
+  | 'shadowtls'
+  | 'tor'
+  | 'ssh'
+  | 'anytls';
 
 export interface OutboundBase {
   type: OutboundType;
@@ -155,6 +429,7 @@ export interface DirectOutbound extends OutboundBase {
   override_port?: number;
   proxy_protocol?: boolean | 1 | 2;
   proxy_protocol_username?: string;
+  proxy_protocol_password?: string;
 }
 
 // Block outbound
@@ -167,6 +442,35 @@ export interface DNSOutbound extends OutboundBase {
   type: 'dns';
 }
 
+// SOCKS outbound
+export interface SocksOutbound extends OutboundBase {
+  type: 'socks';
+  server: string;
+  server_port: number;
+  version?: '4' | '4a' | '5';
+  username?: string;
+  password?: string;
+  network?: 'tcp' | 'udp';
+  udp_over_tcp?: false | {
+    enabled: true;
+    version?: number;
+  };
+  detour?: string;
+}
+
+// HTTP outbound
+export interface HTTPOutbound extends OutboundBase {
+  type: 'http';
+  server: string;
+  server_port: number;
+  username?: string;
+  password?: string;
+  path?: string;
+  headers?: Record<string, string>;
+  tls?: TLSConfig;
+  detour?: string;
+}
+
 // Shadowsocks outbound
 export interface ShadowsocksOutbound extends OutboundBase {
   type: 'shadowsocks';
@@ -176,14 +480,12 @@ export interface ShadowsocksOutbound extends OutboundBase {
   password: string;
   plugin?: string;
   plugin_opts?: Record<string, unknown>;
+  network?: 'tcp' | 'udp';
   udp_over_tcp?: false | {
     enabled: true;
     version?: number;
   };
   multiplex?: MultiplexConfig;
-  tls?: TLSConfig;
-  transport?: TransportConfig;
-  network?: 'tcp' | 'udp';
   detour?: string;
 }
 
@@ -193,14 +495,30 @@ export interface VMessOutbound extends OutboundBase {
   server: string;
   server_port: number;
   uuid: string;
-  security?: 'auto' | 'aes-128-gcm' | 'chacha20-poly1305' | 'none' | 'zero' | string;
+  security?: 'auto' | 'aes-128-gcm' | 'chacha20-poly1305' | 'none' | 'zero' | 'aes-128-ctr' | string;
+  alter_id?: number;
   global_padding?: boolean;
   authenticated_length?: boolean;
   packet_encoding?: string;
-  multiplex?: MultiplexConfig;
+  network?: 'tcp' | 'udp';
   tls?: TLSConfig;
   transport?: TransportConfig;
+  multiplex?: MultiplexConfig;
+  detour?: string;
+}
+
+// VLESS outbound
+export interface VLESSOutbound extends OutboundBase {
+  type: 'vless';
+  server: string;
+  server_port: number;
+  uuid: string;
+  flow?: 'xtls-rprx-vision' | 'xtls-rprx-vision-udp443' | string;
+  packet_encoding?: string;
   network?: 'tcp' | 'udp';
+  tls?: TLSConfig;
+  transport?: TransportConfig;
+  multiplex?: MultiplexConfig;
   detour?: string;
 }
 
@@ -217,21 +535,143 @@ export interface TrojanOutbound extends OutboundBase {
   detour?: string;
 }
 
+// Hysteria outbound
+export interface HysteriaOutbound extends OutboundBase {
+  type: 'hysteria';
+  server: string;
+  server_port: number;
+  server_ports?: string[];
+  hop_interval?: string;
+  up?: string;
+  down?: string;
+  up_mbps?: number;
+  down_mbps?: number;
+  obfs?: string;
+  auth?: string;
+  auth_str?: string;
+  recv_window_conn?: number;
+  recv_window?: number;
+  disable_mtu_discovery?: boolean;
+  network?: 'tcp' | 'udp';
+  tls: TLSConfig;
+  detour?: string;
+}
+
 // Hysteria2 outbound
 export interface Hysteria2Outbound extends OutboundBase {
   type: 'hysteria2';
   server: string;
   server_port: number;
+  server_ports?: string[];
+  hop_interval?: string;
   up_mbps?: number;
   down_mbps?: number;
   obfs?: {
     type?: 'salamander';
-    password?: string;
+    password: string;
   };
   password?: string;
   network?: 'tcp' | 'udp';
   tls?: TLSConfig;
   multiplex?: MultiplexConfig;
+  brutal_debug?: boolean;
+  detour?: string;
+}
+
+// TUIC outbound
+export interface TUICOutbound extends OutboundBase {
+  type: 'tuic';
+  server: string;
+  server_port: number;
+  uuid: string;
+  password?: string;
+  congestion_control?: 'cubic' | 'new_reno' | 'bbr';
+  udp_relay_mode?: 'native' | 'quic';
+  udp_over_stream?: boolean;
+  zero_rtt_handshake?: boolean;
+  heartbeat?: string;
+  network?: 'tcp' | 'udp';
+  tls: TLSConfig;
+  detour?: string;
+}
+
+// WireGuard outbound
+export interface WireGuardOutbound extends OutboundBase {
+  type: 'wireguard';
+  server?: string;
+  server_port?: number;
+  system_interface?: boolean;
+  gso?: boolean;
+  interface_name?: string;
+  local_address: string | string[];
+  private_key: string;
+  peer_public_key?: string;
+  pre_shared_key?: string;
+  peers?: Array<{
+    server?: string;
+    server_port?: number;
+    public_key: string;
+    pre_shared_key?: string;
+    allowed_ips?: string[];
+    reserved?: number[];
+  }>;
+  reserved?: number[];
+  workers?: number;
+  mtu?: number;
+  network?: 'tcp' | 'udp';
+  detour?: string;
+}
+
+// ShadowTLS outbound
+export interface ShadowTLSOutbound extends OutboundBase {
+  type: 'shadowtls';
+  server: string;
+  server_port: number;
+  version: 1 | 2 | 3;
+  password?: string;
+  tls: TLSConfig;
+  detour?: string;
+}
+
+// Tor outbound
+export interface TorOutbound extends OutboundBase {
+  type: 'tor';
+  executable_path?: string;
+  data_directory?: string;
+  extra_args?: string[];
+  torrc?: Record<string, unknown>;
+  detour?: string;
+}
+
+// SSH outbound
+export interface SSHOutbound extends OutboundBase {
+  type: 'ssh';
+  server: string;
+  server_port: number;
+  user?: string;
+  password?: string;
+  private_key?: string;
+  private_key_path?: string;
+  private_key_passphrase?: string;
+  host_key?: string[];
+  host_key_algorithms?: string[];
+  client_version?: string;
+  detour?: string;
+}
+
+// AnyTLS outbound
+export interface AnyTLSOutbound extends OutboundBase {
+  type: 'anytls';
+  server: string;
+  server_port: number;
+  password: string;
+  network?: 'tcp' | 'udp';
+  tls?: TLSConfig;
+  loss?: number;
+  lazy?: boolean;
+  corrupt?: number;
+  delay?: number;
+  jitter?: number;
   detour?: string;
 }
 
@@ -256,10 +696,20 @@ export type Outbound =
   | DirectOutbound
   | BlockOutbound
   | DNSOutbound
+  | SocksOutbound
+  | HTTPOutbound
   | ShadowsocksOutbound
   | VMessOutbound
+  | VLESSOutbound
   | TrojanOutbound
+  | HysteriaOutbound
   | Hysteria2Outbound
+  | TUICOutbound
+  | WireGuardOutbound
+  | ShadowTLSOutbound
+  | TorOutbound
+  | SSHOutbound
+  | AnyTLSOutbound
   | GenericOutbound;
 
 // ============================================================================
@@ -268,6 +718,7 @@ export type Outbound =
 
 export interface TLSConfig {
   enabled?: boolean;
+  disable_sni?: boolean;
   server_name?: string;
   insecure?: boolean;
   alpn?: string[];
@@ -276,6 +727,10 @@ export interface TLSConfig {
   cipher_suites?: string[];
   certificate?: string | string[];
   certificate_path?: string;
+  key?: string | string[];
+  key_path?: string;
+
+  // ECH (Encrypted Client Hello)
   ech?: {
     enabled: boolean;
     pq_signature_schemes_enabled?: boolean;
@@ -283,31 +738,106 @@ export interface TLSConfig {
     config?: string[];
     config_path?: string;
   };
+
+  // uTLS fingerprint
   utls?: {
     enabled: boolean;
-    fingerprint: string;
+    fingerprint: 'chrome' | 'firefox' | 'edge' | 'safari' | '360' | 'qq' | 'ios' | 'android' | 'random' | 'randomized' | string;
   };
-  realtime?: {
+
+  // Reality (for server)
+  acme?: {
+    domain: string | string[];
+    data_directory?: string;
+    default_server_name?: string;
+    email?: string;
+    provider?: 'letsencrypt' | 'zerossl' | string;
+    disable_http_challenge?: boolean;
+    disable_tls_alpn_challenge?: boolean;
+    alternative_http_port?: number;
+    alternative_tls_port?: number;
+    external_account?: {
+      key_id: string;
+      mac_key: string;
+    };
+    dns01_challenge?: {
+      provider: string;
+      [key: string]: unknown;
+    };
+  };
+
+  // Reality for outbound
+  reality?: {
     enabled: boolean;
+    public_key?: string;
+    short_id?: string;
   };
+
+  // Reality for inbound
+  reality_server?: {
+    enabled: boolean;
+    handshake: {
+      server: string;
+      server_port: number;
+    };
+    private_key: string;
+    short_id: string | string[];
+    max_time_difference?: string;
+  };
+
+  // Fragment (1.12.0+)
+  fragment?: boolean;
+  fragment_fallback_delay?: string;
+  record_fragment?: boolean;
 }
 
 // ============================================================================
-// Transport Configuration
+// Transport Configuration (V2Ray Transport)
 // ============================================================================
 
-export interface TransportConfig {
-  type: 'http' | 'ws' | 'quic' | 'grpc' | 'httpupgrade';
+export interface HTTPTransportConfig {
+  type: 'http';
   host?: string | string[];
   path?: string;
-  headers?: Record<string, string>;
   method?: string;
-  max_early_data?: number;
-  early_data_header_name?: string;
-  service_name?: string;
+  headers?: Record<string, string>;
   idle_timeout?: string;
   ping_timeout?: string;
 }
+
+export interface WebSocketTransportConfig {
+  type: 'ws';
+  path?: string;
+  headers?: Record<string, string>;
+  max_early_data?: number;
+  early_data_header_name?: string;
+}
+
+export interface QUICTransportConfig {
+  type: 'quic';
+}
+
+export interface GRPCTransportConfig {
+  type: 'grpc';
+  service_name?: string;
+  idle_timeout?: string;
+  ping_timeout?: string;
+  permit_without_stream?: boolean;
+}
+
+export interface HTTPUpgradeTransportConfig {
+  type: 'httpupgrade';
+  host?: string;
+  path?: string;
+  headers?: Record<string, string>;
+}
+
+export type TransportConfig =
+  | HTTPTransportConfig
+  | WebSocketTransportConfig
+  | QUICTransportConfig
+  | GRPCTransportConfig
+  | HTTPUpgradeTransportConfig;
 
 // ============================================================================
 // Multiplex Configuration
@@ -319,6 +849,7 @@ export interface MultiplexConfig {
   max_connections?: number;
   min_streams?: number;
   max_streams?: number;
+  max_concurrent_streams?: number;
   padding?: boolean;
 }
 
@@ -334,6 +865,7 @@ export interface RouteConfig {
   default_interface?: string;
   final?: string;
   find_process?: boolean;
+  auto_redirect_iproute2_fallback_rule_index?: number;
 }
 
 export interface RouteRule {
@@ -417,15 +949,49 @@ export interface V2RayAPIConfig {
 }
 
 // ============================================================================
+// Dial Fields (Shared)
+// ============================================================================
+
+export interface DialFields {
+  bind_interface?: string;
+  inet4_bind_address?: string;
+  inet6_bind_address?: string;
+  routing_mark?: number;
+  reuse_addr?: boolean;
+  connect_timeout?: string;
+  tcp_fast_open?: boolean;
+  tcp_multi_path?: boolean;
+  udp_fragment?: boolean;
+  domain_strategy?: 'default' | 'prefer_ipv4' | 'prefer_ipv6' | 'ipv4_only' | 'ipv6_only';
+  fallback_delay?: string;
+}
+
+// ============================================================================
 // Main Config Interface
 // ============================================================================
 
 export interface SingBoxConfig {
   log?: LogConfig;
   dns?: DNSConfig;
+  ntp?: NTPConfig;
+  certificate?: {
+    path: string;
+    key: string;
+    key_path?: string;
+    certificate_path?: string;
+  }[];
+  endpoints?: Array<{
+    type: 'wireguard';
+    tag: string;
+    [key: string]: unknown;
+  }>;
   inbounds: Inbound[];
   outbounds: Outbound[];
   route?: RouteConfig;
+  services?: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>;
   experimental?: ExperimentalConfig;
 }
 
