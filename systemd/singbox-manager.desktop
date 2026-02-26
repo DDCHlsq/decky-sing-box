@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Sing-Box Manager
+Comment=Manage sing-box proxy service
+Exec=/usr/bin/pkexec /home/deck/.config/singbox-manager/scripts/singbox-control.sh %a
+Icon=network-workgroup
+Type=Application
+Categories=System;Network;
+PolkitReferenceId=singbox.manager.control

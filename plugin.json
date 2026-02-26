@@ -1,0 +1,26 @@
+{
+  "name": "Sing-Box Manager",
+  "author": "Your Name",
+  "version": "1.0.0",
+  "description": "Manage sing-box network proxy service on Steam Deck",
+  "permissions": [
+    "SYSTEM_SERVICE"
+  ],
+  "flags": [
+    "ALLOW_FLAGS"
+  ],
+  "icon": "Gamepad",
+  "publish": {
+    "tags": ["network", "proxy", "sing-box", "utility"],
+    "description": {
+      "name": "Sing-Box Manager",
+      "overview": "A comprehensive plugin for managing sing-box proxy service on Steam Deck. Features include service control, configuration management, and node selection.",
+      "features": [
+        "Start/Stop sing-box service",
+        "Download configuration from URL",
+        "Select proxy nodes",
+        "Real-time status monitoring"
+      ]
+    }
+  }
+}

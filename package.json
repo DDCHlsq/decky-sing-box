@@ -1,0 +1,35 @@
+{
+  "name": "singbox-decky-plugin",
+  "version": "1.0.0",
+  "description": "Steam Deck Decky plugin for managing sing-box network proxy",
+  "scripts": {
+    "build": "webpack",
+    "build:watch": "webpack --watch",
+    "deploy": "scp -r dist/* deck@192.168.1.100:/home/deck/homebrew/plugins/singbox-manager/",
+    "package": "tar -czvf singbox-manager.tar.gz dist/"
+  },
+  "keywords": [
+    "decky",
+    "plugin",
+    "steam-deck",
+    "sing-box",
+    "proxy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@decky/api": "^1.0.0",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "css-loader": "^6.8.1",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

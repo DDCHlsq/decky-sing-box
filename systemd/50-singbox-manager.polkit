@@ -1,0 +1,5 @@
+[Relevance]
+Action=org.freedesktop.systemd1.Manager.Start;org.freedesktop.systemd1.Manager.Stop;org.freedesktop.systemd1.Manager.Restart
+ResultContext=any
+[Rules]
+any=(uid==deck) ? allow

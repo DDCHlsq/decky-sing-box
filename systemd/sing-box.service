@@ -1,0 +1,28 @@
+[Unit]
+Description=Sing-Box Network Proxy Service
+Documentation=https://sing-box.sagernet.org/
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deck
+Group=deck
+ExecStart=/usr/bin/sing-box run -c /home/deck/.config/sing-box/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=infinity
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin"
+WorkingDirectory=/home/deck/.config/sing-box
+
+[Install]
+WantedBy=multi-user.target
